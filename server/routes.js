@@ -25,7 +25,7 @@ function staticPageLogged(page, loggedGoTo) {
         });
     }
 }
- 
+
 function contact(origin) {
     assert(typeof origin == 'string');
 
@@ -174,7 +174,9 @@ module.exports = function(app) {
     app.get('/request', restrict, user.request);
     app.get('/deposit', restrict, user.deposit);
     app.get('/withdraw', restrict, user.withdraw);
+    app.get('/transfer', restrict, user.transfer);
     app.get('/withdraw/request', restrict, user.withdrawRequest);
+    app.get('/transfer/request', restrict, user.transferRequest);
     app.get('/support', restrict, user.contact);
     app.get('/account', restrict, user.account);
     app.get('/security', restrict, user.security);
@@ -191,7 +193,6 @@ module.exports = function(app) {
     app.get('/game/:id.json', games.getGameInfoJson);
     app.get('/game/:id', games.show);
     app.get('/user/:name', user.profile);
-
     app.get('/error', function(req, res, next) { // Sometimes we redirect people to /error
       return res.render('error');
     });
@@ -204,6 +205,7 @@ module.exports = function(app) {
     app.post('/enable-2fa', restrict, user.enableMfa);
     app.post('/disable-2fa', restrict, user.disableMfa);
     app.post('/withdraw-request', restrict, user.handleWithdrawRequest);
+    app.post('/transfer-request', restrict, user.handleTransferRequest);
     app.post('/support', restrict, contact('support'));
     app.post('/contact', contact('contact'));
     app.post('/logout', restrictRedirectToHome, user.logout);

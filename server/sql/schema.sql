@@ -6,6 +6,7 @@ CREATE EXTENSION plv8;
 
 CREATE TYPE UserClassEnum AS ENUM ('user', 'moderator', 'admin');
 
+
 CREATE TABLE users (
     id bigint NOT NULL,
     created timestamp with time zone DEFAULT now() NOT NULL,
@@ -37,6 +38,19 @@ CREATE SEQUENCE users_id_seq
 ALTER SEQUENCE users_id_seq OWNED BY users.id;
 
 ALTER TABLE ONLY users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
+
+-- Transfers (Tips)
+CREATE TABLE transfers (
+  id uuid NOT NULL,
+  created timestamp with time zone DEFAULT now() NOT NULL,
+  sender_user_id bigint NOT NULL,
+  dest_user_id bigint NOT NULL,
+  amount bigint NOT NULL,
+  CONSTRAINT user_transfer_valid_amount CHECK(amount!=0)
+);
+ALTER TABLE ONLY transfers ADD CONSTRAINT transfers_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY transfers ADD CONSTRAINT sender_user_id_fkey FOREIGN KEY (sender_user_id) REFERENCES   users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY transfers ADD CONSTRAINT dest_user_id_fkey FOREIGN KEY (dest_user_id) REFERENCES   users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 

@@ -12,6 +12,7 @@ var qr = require('qr-image');
 var uuid = require('uuid');
 var _ = require('lodash');
 var config = require('../config/config');
+var util=require('util');
 
 var sessionOptions = {
     httpOnly: true,
@@ -623,6 +624,104 @@ exports.deposit = function(req, res, next) {
         res.render('deposit', { user:  user });
     });
 };
+
+
+ /**
+  * GET
+  * Restricted API
+  * Shows the transfer history
+  **/
+  exports.transfer = function(req, res, next) {
+      var user = req.user;
+      assert(user);
+
+      database.getTransfers(user.id, function(err, transfers) {
+          if (err)
+              return next(new Error('Unable to get transfers: \n' + err));
+
+          transfers.forEach(function(transfer) {
+              transfer.destination = transfer.sentTo;
+          });
+          user.transfers = transfers;
+          res.render('transfer', { user: user });
+      });
+  };
+  /**
+   * GET
+   * Restricted API
+   * Shows the transfer request page
+   **/
+
+exports.transferRequest = function(req, res) {
+    assert(req.user);
+    res.render('transfer-request', { user: req.user, id: uuid.v4() });
+};
+
+
+ /**
+  * GET
+  * Restricted API
+  * Process a transfer (tip)
+  **/
+
+ exports.handleTransferRequest = function (req,res,next){
+     var uid = req.body.transfer_id
+     var user = req.user;
+     var amount = req.body.amount;
+     var destUser = req.body.destUser;
+     var password = lib.removeNullsAndTrim(req.body.password);
+     var otp = lib.removeNullsAndTrim(req.body.otp);
+     var r =  /^[1-9][0-9]*$/;
+     if (!r.test(amount))
+         return res.render('transfer-request', { user: user, id: uuid.v4(),  warning: 'Not a valid amount' });
+    amount = Math.round(parseFloat(amount) * 100)
+
+    if (!password)
+        return res.render('transfer-request', { user: user,  id: uuid.v4(), warning: 'Must enter a password'});
+
+    database.validateUser(user.username, password, otp, function(err) {
+
+        if (err) {
+            if (err === 'WRONG_PASSWORD')
+                return res.render('transfer-request', { user: user, id: uuid.v4(), warning: 'wrong password, try it again...' });
+            if (err === 'INVALID_OTP')
+                return res.render('transfer-request', { user: user, id: uuid.v4(), warning: 'invalid one-time token' });
+            //Should be an user
+            return next(new Error('Unable to validate user handling transfer: \n' + err));
+        }
+        // Check destination user
+
+        database.getUserFromUsername(destUser,function (err,userData){
+            if(err){
+              if(err="NO_USER"){
+                  return res.render('transfer-request', { user: user, id: uuid.v4(), warning: 'The user you are sending to does not exist' });
+              }
+            }
+            var destUserId=userData.id;
+            var senderUserId=req.user.id;
+            if(senderUserId==destUserId){
+                return res.render('transfer-request', { user: user, id: uuid.v4(), warning: 'You cant send to yourself ...' });
+            }
+
+            database.makeTransfer(uid,senderUserId,destUserId,amount,function(err){
+              if(err){
+                console.log(err);
+                if(err == "NOT_ENOUGH_MONEY"){
+                    return res.render('transfer-request', { user: user, id: uuid.v4(), warning: 'You dont have enough bits to transfer' });
+                }
+                //Should never happen
+                else {
+                  return res.render('transfer-request', { user: user, id: uuid.v4(), warning: 'Couldnt Transfer' });
+                }
+              }
+              else{
+                  return res.render('transfer-request', { user: user, id: uuid.v4(), success: 'Bits sent' })
+              }
+            });
+        });
+    });
+
+ };
 
 /**
  * GET
