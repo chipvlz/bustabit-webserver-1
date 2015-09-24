@@ -31,6 +31,7 @@ function query(query, params, callback) {
         callback = params;
         params = [];
     }
+    
     doIt();
     function doIt() {
         connect(function(err, client, done) {
@@ -67,7 +68,7 @@ pg.on('error', function(err) {
 
 function getClient(runner, callback) {
     doIt();
- 
+
     function doIt() {
         connect(function (err, client, done) {
             if (err) return callback(err);
