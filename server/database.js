@@ -609,10 +609,10 @@ exports.makeTransfer = function(uid,senderId,destId,satoshis,callback){
   assert(typeof satoshis === 'number');
   getUserFromId(senderId,function(err,sender){
     if(err){
-      callback("SENDER_DOES_NOT_EXIST");
+      return callback("SENDER_DOES_NOT_EXIST");
     }
     if(satoshis>sender.balance_satoshis){
-      callback("NOT_ENOUGH_MONEY");
+      return callback("NOT_ENOUGH_MONEY");
     }
     // Update balances
     getClient(function(client, callback) {
@@ -650,7 +650,25 @@ exports.makeTransfer = function(uid,senderId,destId,satoshis,callback){
   });
 };
 
-xports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, callback) {
+exports.getWithdrawals = function(userId, callback) {
+    assert(userId && callback);
+
+    query("SELECT * FROM fundings WHERE user_id = $1 AND amount < 0 ORDER BY created DESC", [userId], function(err, result) {
+        if (err) return callback(err);
+
+        var data = result.rows.map(function(row) {
+           return {
+               amount: Math.abs(row.amount),
+               destination: row.bitcoin_withdrawal_address,
+               status: row.bitcoin_withdrawal_txid,
+               created: row.created
+           };
+        });
+        callback(null, data);
+    });
+};
+
+exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, callback) {
     assert(typeof userId === 'number');
     assert(typeof satoshis === 'number');
     assert(typeof withdrawalAddress === 'string');
@@ -681,24 +699,6 @@ xports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawal
         });
 
     }, callback);
-};
-
-exports.getWithdrawals = function(uid,userId, callback) {
-  assert(userId && callback);
-
-  query("SELECT * FROM fundings WHERE user_id = $1 AND amount < 0 ORDER BY created DESC", [userId], function(err, result) {
-    if (err) return callback(err);
-
-    var data = result.rows.map(function(row) {
-      return {
-        amount: Math.abs(row.amount),
-        destination: row.bitcoin_withdrawal_address,
-        status: row.bitcoin_withdrawal_txid,
-        created: row.created
-      };
-    });
-    callback(null, data);
-  });
 };
 
 exports.getTransfers =function (userID,callback){
