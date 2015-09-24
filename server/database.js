@@ -22,12 +22,12 @@ pg.types.setTypeParser(20, function(val) { // parse int8 as an integer
 
 // callback is called with (err, client, done)
 function connect(callback) {
-   return pg.connect(databaseUrl, callback);
+    return pg.connect(databaseUrl, callback);
 }
 
 function query(query, params, callback) {
     //third parameter is optional
-   if (typeof params == 'function') {
+    if (typeof params == 'function') {
         callback = params;
         params = [];
     }
@@ -50,11 +50,6 @@ function query(query, params, callback) {
             });
         });
     }
-
-        callback(null, result);
-      });
-    });
-  }
 }
 
 exports.query = query;
