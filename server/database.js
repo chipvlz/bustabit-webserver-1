@@ -714,7 +714,7 @@ exports.getTransfers =function (userID,callback){
         created: row.created
       };
     });
-    callback(null,data);
+    return callback(null,data);
   });
 }
 
