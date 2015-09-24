@@ -31,12 +31,13 @@ function query(query, params, callback) {
         callback = params;
         params = [];
     }
-
     doIt();
+
     function doIt() {
         connect(function(err, client, done) {
             if (err) return callback(err);
             client.query(query, params, function(err, result) {
+                
                 done();
                 if (err) {
                     if (err.code === '40P01') {
