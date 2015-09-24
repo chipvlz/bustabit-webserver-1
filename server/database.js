@@ -31,7 +31,7 @@ function query(query, params, callback) {
         callback = params;
         params = [];
     }
-    
+
     doIt();
     function doIt() {
         connect(function(err, client, done) {
