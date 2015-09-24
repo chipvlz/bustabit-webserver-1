@@ -650,24 +650,6 @@ exports.makeTransfer = function(uid,senderId,destId,satoshis,callback){
   });
 };
 
-exports.getWithdrawals = function(userId, callback) {
-    assert(userId && callback);
-
-    query("SELECT * FROM fundings WHERE user_id = $1 AND amount < 0 ORDER BY created DESC", [userId], function(err, result) {
-        if (err) return callback(err);
-
-        var data = result.rows.map(function(row) {
-           return {
-               amount: Math.abs(row.amount),
-               destination: row.bitcoin_withdrawal_address,
-               status: row.bitcoin_withdrawal_txid,
-               created: row.created
-           };
-        });
-        callback(null, data);
-    });
-};
-
 exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, callback) {
     assert(typeof userId === 'number');
     assert(typeof satoshis === 'number');
@@ -699,6 +681,24 @@ exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawa
         });
 
     }, callback);
+};
+
+exports.getWithdrawals = function(userId, callback) {
+    assert(userId && callback);
+
+    query("SELECT * FROM fundings WHERE user_id = $1 AND amount < 0 ORDER BY created DESC", [userId], function(err, result) {
+        if (err) return callback(err);
+
+        var data = result.rows.map(function(row) {
+           return {
+               amount: Math.abs(row.amount),
+               destination: row.bitcoin_withdrawal_address,
+               status: row.bitcoin_withdrawal_txid,
+               created: row.created
+           };
+        });
+        callback(null, data);
+    });
 };
 
 exports.getTransfers =function (userID,callback){
