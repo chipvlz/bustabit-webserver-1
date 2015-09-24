@@ -12,39 +12,44 @@ var m = require('multiline');
 var databaseUrl = config.DATABASE_URL;
 
 if (!databaseUrl)
-throw new Error('must set DATABASE_URL environment var');
+    throw new Error('must set DATABASE_URL environment var');
 
 console.log('DATABASE_URL: ', databaseUrl);
 
 pg.types.setTypeParser(20, function(val) { // parse int8 as an integer
-  return val === null ? null : parseInt(val);
+    return val === null ? null : parseInt(val);
 });
 
 // callback is called with (err, client, done)
 function connect(callback) {
-  return pg.connect(databaseUrl, callback);
+   return pg.connect(databaseUrl, callback);
 }
 
 function query(query, params, callback) {
-  //third parameter is optional
-  if (typeof params == 'function') {
-    callback = params;
-    params = [];
-  }
+    //third parameter is optional
+   if (typeof params == 'function') {
+        callback = params;
+        params = [];
+    }
 
-  doIt();
-  function doIt() {
-    connect(function(err, client, done) {
-      if (err) return callback(err);
-      client.query(query, params, function(err, result) {
-        done();
-        if (err) {
-          if (err.code === '40P01') {
-            console.log('Warning: Retrying deadlocked transaction: ', query, params);
-            return doIt();
-          }
-          return callback(err);
-        }
+    doIt();
+    function doIt() {
+        connect(function(err, client, done) {
+            if (err) return callback(err);
+            client.query(query, params, function(err, result) {
+                done();
+                if (err) {
+                    if (err.code === '40P01') {
+                        console.log('Warning: Retrying deadlocked transaction: ', query, params);
+                        return doIt();
+                    }
+                    return callback(err);
+                }
+
+                callback(null, result);
+            });
+        });
+    }
 
         callback(null, result);
       });
@@ -55,7 +60,7 @@ function query(query, params, callback) {
 exports.query = query;
 
 pg.on('error', function(err) {
-  console.error('POSTGRES EMITTED AN ERROR', err);
+    console.error('POSTGRES EMITTED AN ERROR', err);
 });
 
 
@@ -67,26 +72,25 @@ pg.on('error', function(err) {
 // callback takes (err, data)
 
 function getClient(runner, callback) {
-  doIt();
+    doIt();
+ 
+    function doIt() {
+        connect(function (err, client, done) {
+            if (err) return callback(err);
 
-  function doIt() {
-    connect(function (err, client, done) {
-      if (err) return callback(err);
+            function rollback(err) {
+                client.query('ROLLBACK', done);
+                if (err.code === '40P01') {
+                    console.log('Warning: Retrying deadlocked transaction..');
+                    return doIt();
+                }
 
-      function rollback(err) {
-        client.query('ROLLBACK', done);
+                callback(err);
+            }
 
-        if (err.code === '40P01') {
-          console.log('Warning: Retrying deadlocked transaction..');
-          return doIt();
-        }
-
-        callback(err);
-      }
-
-      client.query('BEGIN', function (err) {
-        if (err)
-        return rollback(err);
+            client.query('BEGIN', function (err) {
+                if (err)
+                    return rollback(err);
 
         runner(client, function (err, data) {
           if (err)
@@ -107,39 +111,39 @@ function getClient(runner, callback) {
 
 //Returns a sessionId
 exports.createUser = function(username, password, email, ipAddress, userAgent, callback) {
-  assert(username && password);
+    assert(username && password);
 
-  getClient(
-    function(client, callback) {
-      var hashedPassword = passwordHash.generate(password);
+    getClient(
+        function(client, callback) {
+            var hashedPassword = passwordHash.generate(password);
 
-      client.query('SELECT COUNT(*) count FROM users WHERE lower(username) = lower($1)', [username],
-      function(err, data) {
-        if (err) return callback(err);
-        assert(data.rows.length === 1);
-        if (data.rows[0].count > 0)
-        return callback('USERNAME_TAKEN');
+            client.query('SELECT COUNT(*) count FROM users WHERE lower(username) = lower($1)', [username],
+                function(err, data) {
+                    if (err) return callback(err);
+                    assert(data.rows.length === 1);
+                    if (data.rows[0].count > 0)
+                        return callback('USERNAME_TAKEN');
 
-        client.query('INSERT INTO users(username, email, password) VALUES($1, $2, $3) RETURNING id',
-        [username, email, hashedPassword],
-        function(err, data) {
-          if (err)  {
-            if (err.code === '23505')
-            return callback('USERNAME_TAKEN');
-            else
-            return callback(err);
-          }
+                    client.query('INSERT INTO users(username, email, password) VALUES($1, $2, $3) RETURNING id',
+                            [username, email, hashedPassword],
+                            function(err, data) {
+                                if (err)  {
+                                    if (err.code === '23505')
+                                        return callback('USERNAME_TAKEN');
+                                    else
+                                        return callback(err);
+                                }
 
-          assert(data.rows.length === 1);
-          var user = data.rows[0];
+                                assert(data.rows.length === 1);
+                                var user = data.rows[0];
 
-          createSession(client, user.id, ipAddress, userAgent, false, callback);
-        }
-      );
+                                createSession(client, user.id, ipAddress, userAgent, false, callback);
+                            }
+                        );
 
-    });
+                    });
   }
-  , callback);
+    , callback);
 };
 
 exports.updateEmail = function(userId, email, callback) {
