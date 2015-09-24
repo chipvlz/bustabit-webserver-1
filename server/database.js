@@ -75,6 +75,7 @@ function getClient(runner, callback) {
 
             function rollback(err) {
                 client.query('ROLLBACK', done);
+
                 if (err.code === '40P01') {
                     console.log('Warning: Retrying deadlocked transaction..');
                     return doIt();
