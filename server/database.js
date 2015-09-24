@@ -650,37 +650,37 @@ exports.makeTransfer = function(uid,senderId,destId,satoshis,callback){
   });
 };
 
-exports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, callback) {
-  assert(typeof userId === 'number');
-  assert(typeof satoshis === 'number');
-  assert(typeof withdrawalAddress === 'string');
-  assert(satoshis > 10000);
-  assert(lib.isUUIDv4(withdrawalId));
+xports.makeWithdrawal = function(userId, satoshis, withdrawalAddress, withdrawalId, callback) {
+    assert(typeof userId === 'number');
+    assert(typeof satoshis === 'number');
+    assert(typeof withdrawalAddress === 'string');
+    assert(satoshis > 10000);
+    assert(lib.isUUIDv4(withdrawalId));
 
-  getClient(function(client, callback) {
+    getClient(function(client, callback) {
 
-    client.query("UPDATE users SET balance_satoshis = balance_satoshis - $1 WHERE id = $2",
-    [satoshis, userId], function(err, response) {
-      if (err) return callback(err);
+        client.query("UPDATE users SET balance_satoshis = balance_satoshis - $1 WHERE id = $2",
+            [satoshis, userId], function(err, response) {
+            if (err) return callback(err);
 
-      if (response.rowCount !== 1)
-      return callback(new Error('Unexpected withdrawal row count: \n' + response));
+            if (response.rowCount !== 1)
+                return callback(new Error('Unexpected withdrawal row count: \n' + response));
 
-      client.query('INSERT INTO fundings(user_id, amount, bitcoin_withdrawal_address, withdrawal_id) ' +
-      "VALUES($1, $2, $3, $4) RETURNING id",
-      [userId, -1 * satoshis, withdrawalAddress, withdrawalId],
-      function(err, response) {
-        if (err) return callback(err);
+            client.query('INSERT INTO fundings(user_id, amount, bitcoin_withdrawal_address, withdrawal_id) ' +
+                "VALUES($1, $2, $3, $4) RETURNING id",
+                [userId, -1 * satoshis, withdrawalAddress, withdrawalId],
+                function(err, response) {
+                    if (err) return callback(err);
 
-        var fundingId = response.rows[0].id;
-        assert(typeof fundingId === 'number');
+                    var fundingId = response.rows[0].id;
+                    assert(typeof fundingId === 'number');
 
-        callback(null, fundingId);
-      }
-    );
-  });
+                    callback(null, fundingId);
+                }
+            );
+        });
 
-}, callback);
+    }, callback);
 };
 
 exports.getWithdrawals = function(uid,userId, callback) {
@@ -719,168 +719,168 @@ exports.getTransfers =function (userID,callback){
 }
 
 exports.getDeposits = function(userId, callback) {
-  assert(userId && callback);
+    assert(userId && callback);
 
-  query("SELECT * FROM fundings WHERE user_id = $1 AND amount > 0 ORDER BY created DESC", [userId], function(err, result) {
-    if (err) return callback(err);
+    query("SELECT * FROM fundings WHERE user_id = $1 AND amount > 0 ORDER BY created DESC", [userId], function(err, result) {
+        if (err) return callback(err);
 
-    var data = result.rows.map(function(row) {
-      return {
-        amount: row.amount,
-        txid: row.bitcoin_deposit_txid,
-        created: row.created
-      };
+        var data = result.rows.map(function(row) {
+            return {
+                amount: row.amount,
+                txid: row.bitcoin_deposit_txid,
+                created: row.created
+            };
+        });
+        callback(null, data);
     });
-    callback(null, data);
-  });
 };
 
 exports.getDepositsAmount = function(userId, callback) {
-  assert(userId);
-  query('SELECT SUM(f.amount) FROM fundings f WHERE user_id = $1 AND amount >= 0', [userId], function(err, result) {
-    if (err) return callback(err);
-    callback(null, result.rows[0]);
-  });
+    assert(userId);
+    query('SELECT SUM(f.amount) FROM fundings f WHERE user_id = $1 AND amount >= 0', [userId], function(err, result) {
+        if (err) return callback(err);
+        callback(null, result.rows[0]);
+    });
 };
 
 exports.getWithdrawalsAmount = function(userId, callback) {
-  assert(userId);
-  query('SELECT SUM(f.amount) FROM fundings f WHERE user_id = $1 AND amount < 0', [userId], function(err, result) {
-    if (err) return callback(err);
+    assert(userId);
+    query('SELECT SUM(f.amount) FROM fundings f WHERE user_id = $1 AND amount < 0', [userId], function(err, result) {
+        if (err) return callback(err);
 
-    callback(null, result.rows[0]);
-  });
+        callback(null, result.rows[0]);
+    });
 };
 
 exports.setFundingsWithdrawalTxid = function(fundingId, txid, callback) {
-  assert(typeof fundingId === 'number');
-  assert(typeof txid === 'string');
-  assert(callback);
+    assert(typeof fundingId === 'number');
+    assert(typeof txid === 'string');
+    assert(callback);
 
-  query('UPDATE fundings SET bitcoin_withdrawal_txid = $1 WHERE id = $2', [txid, fundingId],
-  function(err, result) {
-    if (err) return callback(err);
+    query('UPDATE fundings SET bitcoin_withdrawal_txid = $1 WHERE id = $2', [txid, fundingId],
+        function(err, result) {
+           if (err) return callback(err);
 
-    assert(result.rowCount === 1);
+            assert(result.rowCount === 1);
 
-    callback(null);
-  }
-);
+            callback(null);
+        }
+    );
 };
 
 
 exports.getLeaderBoard = function(byDb, order, callback) {
-  var sql = 'SELECT * FROM leaderboard ORDER BY ' + byDb + ' ' + order + ' LIMIT 100';
-  query(sql, function(err, data) {
-    if (err)
-    return callback(err);
-    callback(null, data.rows);
-  });
+    var sql = 'SELECT * FROM leaderboard ORDER BY ' + byDb + ' ' + order + ' LIMIT 100';
+    query(sql, function(err, data) {
+        if (err)
+            return callback(err);
+        callback(null, data.rows);
+    });
 };
 
 exports.addChatMessage = function(userId, created, message, channelName, isBot, callback) {
-  var sql = 'INSERT INTO chat_messages (user_id, created, message, channel, is_bot) values($1, $2, $3, $4, $5)';
-  query(sql, [userId, created, message, channelName, isBot], function(err, res) {
-    if(err)
-    return callback(err);
+    var sql = 'INSERT INTO chat_messages (user_id, created, message, channel, is_bot) values($1, $2, $3, $4, $5)';
+    query(sql, [userId, created, message, channelName, isBot], function(err, res) {
+        if(err)
+            return callback(err);
 
-    assert(res.rowCount === 1);
+        assert(res.rowCount === 1);
 
-    callback(null);
-  });
+        callback(null);
+    });
 };
 
 exports.getChatTable = function(limit, channelName, callback) {
-  assert(typeof limit === 'number');
-  var sql = "SELECT chat_messages.created AS date, 'say' AS type, users.username, users.userclass AS role, chat_messages.message, is_bot AS bot " +
-  "FROM chat_messages JOIN users ON users.id = chat_messages.user_id WHERE channel = $1 ORDER BY chat_messages.id DESC LIMIT $2";
-  query(sql, [channelName, limit], function(err, data) {
-    if(err)
-    return callback(err);
-    callback(null, data.rows);
-  });
+    assert(typeof limit === 'number');
+    var sql = "SELECT chat_messages.created AS date, 'say' AS type, users.username, users.userclass AS role, chat_messages.message, is_bot AS bot " +
+        "FROM chat_messages JOIN users ON users.id = chat_messages.user_id WHERE channel = $1 ORDER BY chat_messages.id DESC LIMIT $2";
+    query(sql, [channelName, limit], function(err, data) {
+        if(err)
+            return callback(err);
+        callback(null, data.rows);
+    });
 };
 
 //Get the history of the chat of all channels except the mods channel
 exports.getAllChatTable = function(limit, callback) {
-  assert(typeof limit === 'number');
-  var sql = m(function(){/*
-    SELECT chat_messages.created AS date, 'say' AS type, users.username, users.userclass AS role, chat_messages.message, is_bot AS bot, chat_messages.channel AS "channelName"
-    FROM chat_messages JOIN users ON users.id = chat_messages.user_id WHERE channel <> 'moderators'  ORDER BY chat_messages.id DESC LIMIT $1
+    assert(typeof limit === 'number');
+    var sql = m(function(){/*
+     SELECT chat_messages.created AS date, 'say' AS type, users.username, users.userclass AS role, chat_messages.message, is_bot AS bot, chat_messages.channel AS "channelName"
+     FROM chat_messages JOIN users ON users.id = chat_messages.user_id WHERE channel <> 'moderators'  ORDER BY chat_messages.id DESC LIMIT $1
     */});
     query(sql, [limit], function(err, data) {
-      if(err)
-      return callback(err);
-      callback(null, data.rows);
+        if(err)
+            return callback(err);
+        callback(null, data.rows);
     });
-  };
+};
 
-  exports.getUsernamesByPrefix = function (unamePrefix, callback) {
+exports.getUsernamesByPrefix = function (unamePrefix, callback) {
     var sql = m(function() {/*
-      WITH d AS (
-      SELECT username FROM users WHERE lower(username)  LIKE $1 || '%' LIMIT 100
-    ) SELECT array_agg(username) AS usernames FROM d;
-    */});
+     WITH d AS (
+     SELECT username FROM users WHERE lower(username)  LIKE $1 || '%' LIMIT 100
+     ) SELECT array_agg(username) AS usernames FROM d;
+     */});
 
     query(sql, [unamePrefix], function(err, data) {
-      if(err)
-      return callback(err);
+        if(err)
+            return callback(err);
 
-      callback(null, data.rows[0].usernames);
+        callback(null, data.rows[0].usernames);
     });
-  };
+};
 
-  exports.getSiteStats = function(callback) {
+exports.getSiteStats = function(callback) {
 
     function as(name, callback) {
-      return function(err, results) {
-        if (err)
-        return callback(err);
+        return function(err, results) {
+            if (err)
+                return callback(err);
 
-        assert(results.rows.length === 1);
-        callback(null, [name, results.rows[0]]);
-      }
+            assert(results.rows.length === 1);
+            callback(null, [name, results.rows[0]]);
+        }
     }
 
     var tasks = [
-      function(callback) {
-        query('SELECT COUNT(*) FROM users', as('users', callback));
-      },
-      function (callback) {
-        query('SELECT COUNT(*) FROM games', as('games', callback));
-      },
-      function(callback) {
-        query('SELECT COALESCE(SUM(fundings.amount), 0)::bigint sum FROM fundings WHERE amount < 0', as('withdrawals', callback));
-      },
-      function(callback) {
-        query("SELECT COUNT(*) FROM games WHERE ended = false AND created < NOW() - interval '5 minutes'", as('unterminated_games', callback));
-      },
-      function(callback) {
-        query('SELECT COUNT(*) FROM fundings WHERE amount < 0 AND bitcoin_withdrawal_txid IS NULL', as('pending_withdrawals', callback));
-      },
-      function(callback) {
-        query('SELECT COALESCE(SUM(fundings.amount), 0)::bigint sum FROM fundings WHERE amount > 0', as('deposits', callback));
-      },
-      function(callback) {
-        query('SELECT ' +
-        'COUNT(*) count, ' +
-        'SUM(plays.bet)::bigint total_bet, ' +
-        'SUM(plays.cash_out)::bigint cashed_out, ' +
-        'SUM(plays.bonus)::bigint bonused ' +
-        'FROM plays', as('plays', callback));
-      }
+        function(callback) {
+            query('SELECT COUNT(*) FROM users', as('users', callback));
+        },
+        function (callback) {
+            query('SELECT COUNT(*) FROM games', as('games', callback));
+        },
+        function(callback) {
+            query('SELECT COALESCE(SUM(fundings.amount), 0)::bigint sum FROM fundings WHERE amount < 0', as('withdrawals', callback));
+        },
+        function(callback) {
+            query("SELECT COUNT(*) FROM games WHERE ended = false AND created < NOW() - interval '5 minutes'", as('unterminated_games', callback));
+        },
+        function(callback) {
+            query('SELECT COUNT(*) FROM fundings WHERE amount < 0 AND bitcoin_withdrawal_txid IS NULL', as('pending_withdrawals', callback));
+        },
+        function(callback) {
+            query('SELECT COALESCE(SUM(fundings.amount), 0)::bigint sum FROM fundings WHERE amount > 0', as('deposits', callback));
+        },
+        function(callback) {
+            query('SELECT ' +
+                'COUNT(*) count, ' +
+                'SUM(plays.bet)::bigint total_bet, ' +
+                'SUM(plays.cash_out)::bigint cashed_out, ' +
+                'SUM(plays.bonus)::bigint bonused ' +
+                'FROM plays', as('plays', callback));
+        }
     ];
 
     async.series(tasks, function(err, results) {
-      if (err) return callback(err);
+       if (err) return callback(err);
 
-      var data = {};
+       var data = {};
 
-      results.forEach(function(entry) {
-        data[entry[0]] = entry[1];
-      });
+        results.forEach(function(entry) {
+           data[entry[0]] = entry[1];
+        });
 
-      callback(null, data);
+        callback(null, data);
     });
 
-  };
+};
