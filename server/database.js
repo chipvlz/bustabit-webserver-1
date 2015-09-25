@@ -40,7 +40,7 @@ function query(query, params, callback) {
                 done();
                 if (err) {
                     if (err.code === '40P01') {
-                        console.log('Warning: Retrying deadlocked transaction: ', query, params);
+                        console.err('[INTERNAL] Warning: Retrying deadlocked transaction: ', query, params);
                         return doIt();
                     }
                     return callback(err);
@@ -77,7 +77,7 @@ function getClient(runner, callback) {
                 client.query('ROLLBACK', done);
 
                 if (err.code === '40P01') {
-                    console.log('Warning: Retrying deadlocked transaction..');
+                    console.err('[INTERNAL] Warning: Retrying deadlocked transaction..');
                     return doIt();
                 }
 
@@ -642,7 +642,7 @@ exports.makeTransfer = function(uid,senderId,destId,satoshis,callback){
           return callback(err)
 
         if (response.rowCount !== 1)
-        return callback(new Error('Unexpected sender balance update row count: \n' + response));
+        return callback(new Error('Unexpected sender balance update row count: ' + response));
 
         client.query("UPDATE users SET balance_satoshis = balance_satoshis + $1 WHERE id = $2",
         [satoshis,destId],function(err,response){
