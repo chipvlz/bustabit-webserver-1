@@ -48,11 +48,23 @@ CREATE TABLE transfers (
   amount bigint NOT NULL,
   CONSTRAINT user_transfer_valid_amount CHECK(amount!=0)
 );
+
+CREATE INDEX transfer_sender_user_id_idx ON transfers USING btree (sender_user_id);
+CREATE INDEX transfer_dest_user_id_idx ON transfers USING btree (dest_user_id);
+
 ALTER TABLE ONLY transfers ADD CONSTRAINT transfers_pkey PRIMARY KEY (id);
 ALTER TABLE ONLY transfers ADD CONSTRAINT sender_user_id_fkey FOREIGN KEY (sender_user_id) REFERENCES   users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE ONLY transfers ADD CONSTRAINT dest_user_id_fkey FOREIGN KEY (dest_user_id) REFERENCES   users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
+-- View that shows transfers with received and sent to usernames
 
+CREATE VIEW transfers_sent AS
+	(SELECT transfers.id , users.username as sender_username , transfers.created , amount from users
+		Inner join transfers on users.id = transfers.sender_user_id );
+CREATE VIEW transfers_received AS
+	(SELECT transfers.id , users.username as dest_username , transfers.created , amount from users
+		Inner join transfers on users.id = transfers.dest_user_id );
+create view transfers_received_sent as select * from transfers_sent natural join transfers_received
 
 -- Blocks
 

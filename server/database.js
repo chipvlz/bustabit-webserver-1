@@ -251,6 +251,25 @@ exports.createSession = function(userId, ipAddress, userAgent, remember, callbac
 
 };
 
+//Do not export , internal utilty function
+var getUserFromId = function(id,callback){
+
+  assert(id && callback);
+
+  query('SELECT * FROM users WHERE id = $1', [id], function(err, data) {
+    if (err) return callback(err);
+
+    if (data.rows.length === 0)
+    return callback('NO_USER');
+
+    assert(data.rows.length === 1);
+    var user = data.rows[0];
+    assert(typeof user.balance_satoshis === 'number');
+
+    callback(null, user);
+  });
+}
+
 exports.getUserFromUsername = function(username, callback) {
     assert(username && callback);
 
@@ -701,20 +720,25 @@ exports.getWithdrawals = function(userId, callback) {
     });
 };
 
-exports.getTransfers =function (userID,callback){
-  assert(userID && callback);
-  query("select transfers.id , transfers.created , username , amount from \
-  transfers inner join users on transfers.sender_user_id=users.id \
-  where transfers.sender_user_id= $1 ORDER BY created DESC" ,[userID] ,function(err,result){
-    if (err) return callback(err);
-    var data = result.rows.map(function(row) {
-      return {
-        amount: row.amount,
-        sentTo: row.username,
-        created: row.created
-      };
+exports.getTransfers =function (userId,callback){
+  assert(userId && callback);
+  getUserFromId(userId,function(err,sender){
+    if(err){
+      return callback("SENDER_DOES_NOT_EXIST");
+    }
+    var username=sender.username;
+    query("select * from transfers_received_sent where sender_username = $1 or dest_username = $1 ORDER BY created DESC" ,[username] ,function(err,result){
+      if (err) return callback(err);
+      var data = result.rows.map(function(row) {
+         return{
+           amount : row.amount,
+           created : row.created,
+           sentTo : row.dest_username,
+           receivedFrom : row.sender_username
+         }
+      });
+      return callback(null,data);
     });
-    return callback(null,data);
   });
 }
 

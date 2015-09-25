@@ -44,7 +44,49 @@
             <a class="border-button right green" href="/transfer/request">Transfer Bits</a>
             <h5 >Transfer History</h5>
             <hr>
+            {{
+              var sent_count = 0;
+              var received_count = 0;
+            }}
             {{?it.user.transfers.length > 0}}
+              {{~it.user.transfers :transfer:index}}
+                {{? transfer.sentTo != it.user.username}}
+                  {{sent_count = sent_count + 1; }}
+                {{?}}
+                {{? transfer.sentTo== it.user.username}}
+                  {{received_count = received_count + 1; }}
+                {{?}}
+              {{~}}
+                {{? sent_count > 0}}
+                <h6>Sent transfers<h6>
+                <table>
+                    <thead>
+                        <tr>
+                            <td>Bits</td>
+                            <td>User</td>
+                            <td class="show-for-large-up">Date Transfered </td>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        {{~it.user.transfers :transfer:index}}
+                          {{? transfer.sentTo != it.user.username}}
+                            <tr>
+                                <td>{{#def.format: {n: transfer.amount, decimals: 2 } }}</td>
+                                <td>
+                                    <span>{{=transfer.sentTo}} </span>
+                                </td>
+                                <td class="show-for-large-up">{{=transfer.created}}</td>
+                            </tr>
+                            {{?}}
+                        {{~}}
+
+                    </tbody>
+                </table>
+                {{?}}
+                {{? received_count > 0}}
+                <h6>Received tranfers<h6>
                 <table>
                     <thead>
                         <tr>
@@ -56,16 +98,19 @@
                     </thead>
                     <tbody>
                         {{~it.user.transfers :transfer:index}}
+                            {{? transfer.sentTo == it.user.username}}
                             <tr>
                                 <td>{{#def.format: {n: transfer.amount, decimals: 2 } }}</td>
                                 <td>
-                                    <span>{{=transfer.sentTo}} </span>
+                                    <span>{{=transfer.receivedFrom}} </span>
                                 </td>
                                 <td class="show-for-large-up">{{=transfer.created}}</td>
                             </tr>
+                            {{?}}
                         {{~}}
                     </tbody>
                 </table>
+                {{?}}
             {{??}}
                 <br>
                 <br>
